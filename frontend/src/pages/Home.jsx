@@ -94,7 +94,7 @@ function Home() {
             </p>
             <p className="font-bold text-green-600 mt-1">₹{item.price}</p>
             <Link
-              to={`/pay/${item._id}`}
+              to={`/listing/${item._id}`} // ✅ updated route
               className="block mt-2 text-blue-600 underline"
             >
               View Details

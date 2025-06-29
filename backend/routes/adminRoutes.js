@@ -5,7 +5,7 @@ const router = express.Router();
 const Listing = require('../models/Listing');
 const Payment = require('../models/Payment');
 
-// Middleware to verify admin token
+// ✅ Middleware: Verify Admin Token
 const verifyAdmin = (req, res, next) => {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) return res.sendStatus(401);
@@ -20,7 +20,7 @@ const verifyAdmin = (req, res, next) => {
   }
 };
 
-// Admin login
+// ✅ Admin Login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const adminUsername = process.env.ADMIN_USER;
@@ -33,7 +33,7 @@ router.post('/login', async (req, res) => {
   return res.status(401).json({ error: 'Invalid credentials' });
 });
 
-// Admin dashboard stats
+// ✅ Dashboard Stats
 router.get('/dashboard', verifyAdmin, async (req, res) => {
   try {
     const totalListings = await Listing.countDocuments();
@@ -64,7 +64,7 @@ router.get('/dashboard', verifyAdmin, async (req, res) => {
   }
 });
 
-// Payment Logs
+// ✅ Get Payment Logs
 router.get('/payments', verifyAdmin, async (req, res) => {
   try {
     const payments = await Payment.find({})
@@ -88,7 +88,7 @@ router.get('/payments', verifyAdmin, async (req, res) => {
   }
 });
 
-// ✅ Toggle listing visibility (show/hide post)
+// ✅ Toggle Listing Visibility
 router.patch('/listings/:id/visibility', verifyAdmin, async (req, res) => {
   const { id } = req.params;
   const { isVisible } = req.body;
@@ -100,6 +100,42 @@ router.patch('/listings/:id/visibility', verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error('Visibility update failed:', err);
     res.status(500).json({ error: 'Failed to update visibility' });
+  }
+});
+
+// ✅ Create New Listing
+router.post('/listings', verifyAdmin, async (req, res) => {
+  try {
+    const newListing = new Listing(req.body);
+    const saved = await newListing.save();
+    res.status(201).json({ message: 'Listing created', data: saved });
+  } catch (err) {
+    console.error('Create failed:', err);
+    res.status(500).json({ error: 'Failed to create listing' });
+  }
+});
+
+// ✅ Update Listing
+router.put('/listings/:id', verifyAdmin, async (req, res) => {
+  try {
+    const updated = await Listing.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ message: 'Listing updated', data: updated });
+  } catch (err) {
+    console.error('Update failed:', err);
+    res.status(500).json({ error: 'Failed to update listing' });
+  }
+});
+
+// ✅ Delete Listing
+router.delete('/listings/:id', verifyAdmin, async (req, res) => {
+  try {
+    const deleted = await Listing.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Listing not found' });
+    res.json({ message: 'Listing deleted' });
+  } catch (err) {
+    console.error('Delete failed:', err);
+    res.status(500).json({ error: 'Failed to delete listing' });
   }
 });
 

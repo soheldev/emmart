@@ -6,19 +6,20 @@ require('dotenv').config();
 
 const app = express();
 
+// Route imports
 const listingRoutes = require('./routes/listingRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
-const adminRoutes = require('./routes/adminRoutes'); // ✅ Add admin routes
+const adminRoutes = require('./routes/adminRoutes');
 
 app.use(cors());
 app.use(express.json());
 
-// ✅ Serve uploaded image files from /uploads
+// Static uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// ✅ Routes
+// API routes
 app.use('/api/listings', listingRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/admin', adminRoutes); // 👈 Prefix admin routes under /api/admin
+app.use('/api/admin', adminRoutes);
 
 module.exports = app;

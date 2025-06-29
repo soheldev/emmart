@@ -1,50 +1,30 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  mongo:
-    image: mongo:6
-    container_name: emmart-mongo
-    restart: always
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-
   backend:
-    build:
-      context: ./backend
-    container_name: emmart-backend
-    restart: always
+    build: ./backend
     ports:
-      - "5000:5000"
+      - '5000:5000'
     env_file:
-      - ./backend/.env
+      - .env
     depends_on:
       - mongo
 
-  web:
-    build:
-      context: ./web-app
-    container_name: emmart-web
-    restart: always
+  frontend:
+    build: ./frontend
     ports:
-      - "3000:3000"
+      - '5173:5173'
     env_file:
-      - ./web-app/.env
-    depends_on:
-      - backend
+      - .env
+    stdin_open: true
+    tty: true
 
-  admin:
-    build:
-      context: ./admin-panel
-    container_name: emmart-admin
-    restart: always
+  mongo:
+    image: mongo:5
     ports:
-      - "4000:4000"
-    env_file:
-      - ./admin-panel/.env
-    depends_on:
-      - backend
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
 
 volumes:
-  mongo_data:
+  mongo-data:

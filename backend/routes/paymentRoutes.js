@@ -87,3 +87,15 @@ exports.verifyAndStorePayment = async (req, res) => {
     res.status(500).json({ error: 'Failed to save payment' });
   }
 };
+// backend/routes/paymentRoutes.js
+const express = require('express');
+const router = express.Router();
+const paymentController = require('../controllers/paymentController');
+
+// Create Razorpay order
+router.post('/initiate', paymentController.initiatePayment);
+
+// Verify and record payment
+router.post('/verify', paymentController.verifyAndStorePayment);
+
+module.exports = router;
