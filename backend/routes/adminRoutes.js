@@ -1,9 +1,31 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 
 const Listing = require('../models/Listing');
 const Payment = require('../models/Payment');
+
+// ✅ Ensure "uploads/" directory exists
+const uploadDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+// ✅ Multer setup
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueName + ext);
+  }
+});
+const upload = multer({ storage });
 
 // ✅ Middleware: Verify Admin Token
 const verifyAdmin = (req, res, next) => {
@@ -38,7 +60,6 @@ router.get('/dashboard', verifyAdmin, async (req, res) => {
   try {
     const totalListings = await Listing.countDocuments();
     const totalPayments = await Payment.countDocuments({ status: 'success' });
-
     const allPayments = await Payment.find({ status: 'success' });
     const totalRevenue = allPayments.reduce((sum, p) => sum + p.amount, 0);
 
@@ -50,15 +71,9 @@ router.get('/dashboard', verifyAdmin, async (req, res) => {
       status: 'success',
       createdAt: { $gte: startOfMonth }
     });
-
     const monthlyRevenue = monthlyPayments.reduce((sum, p) => sum + p.amount, 0);
 
-    res.json({
-      totalListings,
-      totalPayments,
-      totalRevenue,
-      monthlyRevenue
-    });
+    res.json({ totalListings, totalPayments, totalRevenue, monthlyRevenue });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch dashboard stats' });
   }
@@ -103,11 +118,15 @@ router.patch('/listings/:id/visibility', verifyAdmin, async (req, res) => {
   }
 });
 
-// ✅ Create New Listing
-router.post('/listings', verifyAdmin, async (req, res) => {
+// ✅ Create New Listing (with Image Upload)
+router.post('/listings', verifyAdmin, upload.single('image'), async (req, res) => {
   try {
-    const newListing = new Listing(req.body);
-    const saved = await newListing.save();
+    const listingData = {
+      ...req.body,
+      image: req.file ? req.file.filename : null
+    };
+    const saved = await new Listing(listingData);
+    await saved.save();
     res.status(201).json({ message: 'Listing created', data: saved });
   } catch (err) {
     console.error('Create failed:', err);
@@ -115,10 +134,13 @@ router.post('/listings', verifyAdmin, async (req, res) => {
   }
 });
 
-// ✅ Update Listing
-router.put('/listings/:id', verifyAdmin, async (req, res) => {
+// ✅ Update Listing (optional image)
+router.put('/listings/:id', verifyAdmin, upload.single('image'), async (req, res) => {
   try {
-    const updated = await Listing.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const listingData = { ...req.body };
+    if (req.file) listingData.image = req.file.filename;
+
+    const updated = await Listing.findByIdAndUpdate(req.params.id, listingData, { new: true });
     if (!updated) return res.status(404).json({ error: 'Listing not found' });
     res.json({ message: 'Listing updated', data: updated });
   } catch (err) {
